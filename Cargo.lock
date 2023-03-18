@@ -1855,7 +1855,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5d6e0250b93c8427a177b849d144a96d5acc57006149479403d7861ab721e34"
 
 [[package]]
-name = "stabilitypool"
+name = "stabilitypool-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
