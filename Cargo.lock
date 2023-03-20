@@ -1923,6 +1923,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "stabilitypool-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bitcoin",
+ "erased-serde",
+ "fedimint-core",
+ "futures",
+ "lazy_static",
+ "proptest",
+ "rand",
+ "reqwest",
+ "secp256k1-zkp",
+ "serde",
+ "serde_json",
+ "stabilitypool-common",
+ "strum",
+ "strum_macros",
+ "time",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "strum"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

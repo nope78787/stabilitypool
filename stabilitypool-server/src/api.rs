@@ -4,11 +4,12 @@ use fedimint_core::core::ModuleInstanceId;
 use fedimint_core::db::ModuleDatabaseTransaction;
 use fedimint_core::module::{api_endpoint, ApiEndpoint, ApiError};
 use futures::StreamExt;
+use stabilitypool::LockedBalance;
 
-use crate::account::AccountBalance;
 use crate::action::{ActionProposed, ActionProposedDb, ActionStaged};
 use crate::epoch::{self, EpochOutcome, EpochState};
 use crate::{db, StabilityPool};
+use stabilitypool::account::AccountBalance;
 
 pub fn endpoints() -> Vec<ApiEndpoint<StabilityPool>> {
     vec![
@@ -120,7 +121,7 @@ pub async fn account(
         .expect("should be settled");
 
     match account.locked {
-        crate::LockedBalance::Seeker(locked) => BalanceResponse {
+        LockedBalance::Seeker(locked) => BalanceResponse {
             unlocked: account.unlocked.msats,
             locked: Some(LockedBalanceResponse {
                 value: locked.msats,
@@ -130,7 +131,7 @@ pub async fn account(
                 epoch: epoch_outcome,
             }),
         },
-        crate::LockedBalance::Provider(locked) => BalanceResponse {
+        LockedBalance::Provider(locked) => BalanceResponse {
             unlocked: account.unlocked.msats,
             locked: Some(LockedBalanceResponse {
                 value: locked.msats,
@@ -140,7 +141,7 @@ pub async fn account(
                 epoch: epoch_outcome,
             }),
         },
-        crate::LockedBalance::None => BalanceResponse {
+        LockedBalance::None => BalanceResponse {
             unlocked: account.unlocked.msats,
             locked: None,
         },

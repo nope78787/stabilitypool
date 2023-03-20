@@ -2,6 +2,7 @@
 members = [
     "stabilitypool-common",
     "stabilitypool-client",
+    "stabilitypool-server",
 ]
 resolver = "2"
 
