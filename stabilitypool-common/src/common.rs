@@ -6,9 +6,9 @@ use crate::{ModuleInstanceId, PoolConsensusItem, PoolInput, PoolOutput, PoolOutp
 // #[derive(Debug, Default, Clone)]
 // pub struct PoolDecoder;
 
-pub struct StabilityPoolModuleTypes;
+pub struct PoolModuleTypes;
 
-impl ModuleCommon for StabilityPoolModuleTypes {
+impl ModuleCommon for PoolModuleTypes {
     type Input = PoolInput;
     type Output = PoolOutput;
     type OutputOutcome = PoolOutputOutcome;

@@ -19,7 +19,7 @@ use fedimint_core::task::TaskGroup;
 use fedimint_core::{NumPeers, PeerId};
 use serde::{Deserialize, Serialize};
 
-use crate::common::StabilityPoolModuleTypes;
+use crate::common::PoolModuleTypes;
 use crate::config::{
     EpochConfig, OracleConfig, PoolConfig, PoolConfigClient, PoolConfigConsensus, PoolConfigPrivate,
 };
@@ -71,7 +71,7 @@ impl CommonModuleGen for PoolCommonGen {
     const KIND: ModuleKind = KIND;
 
     fn decoder() -> Decoder {
-        StabilityPoolModuleTypes::decoder()
+        PoolModuleTypes::decoder()
     }
 
     fn hash_client_module(

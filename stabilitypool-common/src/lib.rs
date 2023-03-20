@@ -3,7 +3,7 @@ use std::fmt;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use common::StabilityPoolModuleTypes;
+use common::PoolModuleTypes;
 use fedimint_core::core::{ModuleInstanceId, ModuleKind};
 use fedimint_core::db::ModuleDatabaseTransaction;
 use fedimint_core::encoding::{Decodable, Encodable};
@@ -118,7 +118,7 @@ impl StabilityPool {
 #[async_trait]
 impl ServerModule for StabilityPool {
     type Gen = config_gen::PoolConfigGenerator;
-    type Common = StabilityPoolModuleTypes;
+    type Common = PoolModuleTypes;
     type VerificationCache = PoolVerificationCache;
 
     fn versions(&self) -> (ModuleConsensusVersion, &[ApiVersion]) {

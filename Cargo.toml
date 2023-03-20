@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "stabilitypool-common",
+    "stabilitypool-client",
 ]
 resolver = "2"
 
