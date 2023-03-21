@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = "1.0.66"
 async-trait = "0.1"
-fedimint-core = { git = "https://github.com/fedimint/fedimint", rev = "c06bc2f4eb77596696c127aba0bc502bf73b2e70" }
+fedimint-core = { workspace = true }
 futures = "0.3.24"
 serde = { version = "1.0.149", features = [ "derive" ] }
 strum = "0.24"

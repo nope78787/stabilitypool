@@ -6,5 +6,9 @@ members = [
 ]
 resolver = "2"
 
+[workspace.dependencies]
+fedimint-core = { git = "https://github.com/fedimint/fedimint", rev = "c06bc2f4eb77596696c127aba0bc502bf73b2e70" }
+fedimint-client = { git = "https://github.com/fedimint/fedimint", rev = "c06bc2f4eb77596696c127aba0bc502bf73b2e70" }
+
 [patch.crates-io]
 secp256k1-zkp = { git = "https://github.com/dpc/rust-secp256k1-zkp/", branch = "sanket-pr" }
