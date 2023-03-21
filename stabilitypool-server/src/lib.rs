@@ -63,9 +63,7 @@ pub struct PoolConfigGenParams {
     pub collateral_ratio: CollateralRatio,
 }
 
-impl ModuleGenParams for PoolConfigGenParams {
-    const MODULE_NAME: &'static str = "stabilitypool";
-}
+impl ModuleGenParams for PoolConfigGenParams {}
 
 impl Default for PoolConfigGenParams {
     fn default() -> Self {
@@ -110,7 +108,7 @@ impl ServerModuleGen for PoolConfigGenerator {
         params: &ConfigGenParams,
     ) -> BTreeMap<PeerId, ServerModuleConfig> {
         let params = params
-            .get::<PoolConfigGenParams>()
+            .to_typed::<PoolConfigGenParams>()
             .expect("Invalid mint params");
 
         let mint_cfg: BTreeMap<_, PoolConfig> = peers
@@ -149,7 +147,7 @@ impl ServerModuleGen for PoolConfigGenerator {
         params: &ConfigGenParams,
     ) -> DkgResult<ServerModuleConfig> {
         let params = params
-            .get::<PoolConfigGenParams>()
+            .to_typed::<PoolConfigGenParams>()
             .expect("Invalid mint params");
 
         let server = PoolConfig {

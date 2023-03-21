@@ -353,7 +353,6 @@ dependencies = [
 [[package]]
 name = "fedimint-client"
 version = "0.1.0"
-source = "git+https://github.com/fedimint/fedimint?rev=c06bc2f4eb77596696c127aba0bc502bf73b2e70#c06bc2f4eb77596696c127aba0bc502bf73b2e70"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -371,7 +370,6 @@ dependencies = [
 [[package]]
 name = "fedimint-core"
 version = "0.1.0"
-source = "git+https://github.com/fedimint/fedimint?rev=c06bc2f4eb77596696c127aba0bc502bf73b2e70#c06bc2f4eb77596696c127aba0bc502bf73b2e70"
 dependencies = [
  "anyhow",
  "async-lock",
@@ -416,7 +414,6 @@ dependencies = [
 [[package]]
 name = "fedimint-derive"
 version = "0.1.0"
-source = "git+https://github.com/fedimint/fedimint?rev=c06bc2f4eb77596696c127aba0bc502bf73b2e70#c06bc2f4eb77596696c127aba0bc502bf73b2e70"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -427,7 +424,6 @@ dependencies = [
 [[package]]
 name = "fedimint-logging"
 version = "0.1.0"
-source = "git+https://github.com/fedimint/fedimint?rev=c06bc2f4eb77596696c127aba0bc502bf73b2e70#c06bc2f4eb77596696c127aba0bc502bf73b2e70"
 dependencies = [
  "anyhow",
  "tracing-subscriber",
@@ -2012,7 +2008,6 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "tbs"
 version = "0.1.0"
-source = "git+https://github.com/fedimint/fedimint?rev=c06bc2f4eb77596696c127aba0bc502bf73b2e70#c06bc2f4eb77596696c127aba0bc502bf73b2e70"
 dependencies = [
  "bitcoin_hashes",
  "bls12_381",
