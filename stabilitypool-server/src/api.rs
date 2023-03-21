@@ -16,46 +16,46 @@ pub fn endpoints() -> Vec<ApiEndpoint<StabilityPool>> {
         // Get outcome of given `epoch_id`.
         api_endpoint! {
             "/epoch",
-            async |_module: &StabilityPool, dbtx, epoch_id: u64| -> EpochOutcome {
-                epoch_outcome(dbtx, epoch_id).await
+            async |_module: &StabilityPool, context, epoch_id: u64| -> EpochOutcome {
+                epoch_outcome(context.dbtx(), epoch_id).await
             }
         },
         // Get the `epoch_id` that the federation will accept user actions for.
         api_endpoint! {
             "/epoch_next",
-            async |_module: &StabilityPool, dbtx, _request: ()| -> u64 {
-                Ok(epoch::EpochState::from_db(dbtx).await.staging_epoch_id())
+            async |_module: &StabilityPool, context, _request: ()| -> u64 {
+                Ok(epoch::EpochState::from_db(context.dbtx()).await.staging_epoch_id())
             }
         },
         api_endpoint! {
             "/epoch_last_settled",
-            async |_module: &StabilityPool, dbtx, _request: ()| -> Option<u64> {
-                Ok(epoch::EpochState::from_db(dbtx).await.latest_settled)
+            async |_module: &StabilityPool, context, _request: ()| -> Option<u64> {
+                Ok(epoch::EpochState::from_db(context.dbtx()).await.latest_settled)
             }
         },
         api_endpoint! {
             "/account",
-            async |_module: &StabilityPool, dbtx, request: secp256k1_zkp::XOnlyPublicKey| -> BalanceResponse {
-                Ok(account(dbtx, request).await)
+            async |_module: &StabilityPool, context, request: secp256k1_zkp::XOnlyPublicKey| -> BalanceResponse {
+                Ok(account(context.dbtx(), request).await)
             }
         },
         api_endpoint! {
             "/action",
-            async |_module: &StabilityPool, dbtx, request: secp256k1_zkp::XOnlyPublicKey| -> ActionStaged {
-                db::get(dbtx, &db::ActionStagedKey(request)).await
+            async |_module: &StabilityPool, context, request: secp256k1_zkp::XOnlyPublicKey| -> ActionStaged {
+                db::get(context.dbtx(), &db::ActionStagedKey(request)).await
                     .ok_or(ApiError::not_found(format!("no action staged for account {}", request)))
             }
         },
         api_endpoint! {
             "/action_propose",
-            async |module: &StabilityPool, dbtx, request: ActionProposed| -> () {
-                propose_action(dbtx, &module.proposed_db, request).await
+            async |module: &StabilityPool, context, request: ActionProposed| -> () {
+                propose_action(context.dbtx(), &module.proposed_db, request).await
             }
         },
         api_endpoint! {
             "/state",
-            async |_module: &StabilityPool, dbtx, _request: ()| -> State {
-                Ok(state(dbtx).await)
+            async |_module: &StabilityPool, context, _request: ()| -> State {
+                Ok(state(context.dbtx()).await)
             }
         },
     ]
