@@ -1,15 +1,15 @@
 use std::collections::BTreeMap;
 
+use common::LockedBalance;
 use fedimint_core::core::ModuleInstanceId;
 use fedimint_core::db::ModuleDatabaseTransaction;
 use fedimint_core::module::{api_endpoint, ApiEndpoint, ApiError};
 use futures::StreamExt;
-use stabilitypool::LockedBalance;
 
 use crate::action::{ActionProposed, ActionProposedDb, ActionStaged};
 use crate::epoch::{self, EpochOutcome, EpochState};
-use crate::{db, StabilityPool};
-use stabilitypool::account::AccountBalance;
+use crate::{common, db, StabilityPool};
+use common::account::AccountBalance;
 
 pub fn endpoints() -> Vec<ApiEndpoint<StabilityPool>> {
     vec![
@@ -17,45 +17,45 @@ pub fn endpoints() -> Vec<ApiEndpoint<StabilityPool>> {
         api_endpoint! {
             "/epoch",
             async |_module: &StabilityPool, context, epoch_id: u64| -> EpochOutcome {
-                epoch_outcome(context.dbtx(), epoch_id).await
+                epoch_outcome(&mut context.dbtx(), epoch_id).await
             }
         },
         // Get the `epoch_id` that the federation will accept user actions for.
         api_endpoint! {
             "/epoch_next",
             async |_module: &StabilityPool, context, _request: ()| -> u64 {
-                Ok(epoch::EpochState::from_db(context.dbtx()).await.staging_epoch_id())
+                Ok(epoch::EpochState::from_db(&mut context.dbtx()).await.staging_epoch_id())
             }
         },
         api_endpoint! {
             "/epoch_last_settled",
             async |_module: &StabilityPool, context, _request: ()| -> Option<u64> {
-                Ok(epoch::EpochState::from_db(context.dbtx()).await.latest_settled)
+                Ok(epoch::EpochState::from_db(&mut context.dbtx()).await.latest_settled)
             }
         },
         api_endpoint! {
             "/account",
             async |_module: &StabilityPool, context, request: secp256k1_zkp::XOnlyPublicKey| -> BalanceResponse {
-                Ok(account(context.dbtx(), request).await)
+                Ok(account(&mut context.dbtx(), request).await)
             }
         },
         api_endpoint! {
             "/action",
             async |_module: &StabilityPool, context, request: secp256k1_zkp::XOnlyPublicKey| -> ActionStaged {
-                db::get(context.dbtx(), &db::ActionStagedKey(request)).await
+                db::get(&mut context.dbtx(), &db::ActionStagedKey(request)).await
                     .ok_or(ApiError::not_found(format!("no action staged for account {}", request)))
             }
         },
         api_endpoint! {
             "/action_propose",
             async |module: &StabilityPool, context, request: ActionProposed| -> () {
-                propose_action(context.dbtx(), &module.proposed_db, request).await
+                propose_action(&mut context.dbtx(), &module.proposed_db, request).await
             }
         },
         api_endpoint! {
             "/state",
             async |_module: &StabilityPool, context, _request: ()| -> State {
-                Ok(state(context.dbtx()).await)
+                Ok(state(&mut context.dbtx()).await)
             }
         },
     ]

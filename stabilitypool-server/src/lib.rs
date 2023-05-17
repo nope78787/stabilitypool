@@ -1,81 +1,45 @@
 pub mod api;
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 use std::fmt;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use common::config::{
+    EpochConfig, PoolClientConfig, PoolConfig, PoolConfigConsensus, PoolConfigGenParams,
+    PoolConfigPrivate,
+};
+use common::db::AccountBalanceKeyPrefix;
+use common::PoolModuleTypes;
+use common::{
+    db, BackOff, ConsensusItemOutcome, OracleClient, PoolCommonGen, PoolConsensusItem, PoolInput,
+    PoolOutput, PoolOutputOutcome,
+};
 use fedimint_core::config::{
-    ConfigGenParams, DkgResult, ModuleConfigResponse, ModuleGenParams, ServerModuleConfig,
-    TypedServerModuleConfig, TypedServerModuleConsensusConfig,
+    ClientModuleConfig, ConfigGenModuleParams, DkgResult, ServerModuleConfig,
+    ServerModuleConsensusConfig, TypedServerModuleConfig, TypedServerModuleConsensusConfig,
 };
 use fedimint_core::core::ModuleInstanceId;
 use fedimint_core::db::{Database, DatabaseVersion, ModuleDatabaseTransaction};
-use fedimint_core::encoding::Encodable;
-use fedimint_core::module::__reexports::serde_json;
 use fedimint_core::module::audit::Audit;
 use fedimint_core::module::interconnect::ModuleInterconect;
 use fedimint_core::module::{
-    ApiEndpoint, ApiVersion, ConsensusProposal, CoreConsensusVersion, ExtendsCommonModuleGen,
-    InputMeta, IntoModuleError, ModuleConsensusVersion, ModuleError, PeerHandle, ServerModuleGen,
-    TransactionItemAmount,
+    ApiEndpoint, ConsensusProposal, CoreConsensusVersion, ExtendsCommonModuleGen, InputMeta,
+    IntoModuleError, ModuleConsensusVersion, ModuleError, PeerHandle, ServerModuleGen,
+    SupportedModuleApiVersions, TransactionItemAmount,
 };
 use fedimint_core::server::DynServerModule;
 use fedimint_core::task::TaskGroup;
 use fedimint_core::{NumPeers, OutPoint, PeerId, ServerModule};
-use serde::{Deserialize, Serialize};
-use stabilitypool::db::AccountBalanceKeyPrefix;
-use stabilitypool::stability_core::CollateralRatio;
+use stabilitypool_common as common;
 
-use stabilitypool::common::PoolModuleTypes;
-use stabilitypool::config::{
-    EpochConfig, OracleConfig, PoolConfig, PoolConfigConsensus, PoolConfigPrivate,
-};
-use stabilitypool::{
-    db, ActionProposedDb, BackOff, ConsensusItemOutcome, OracleClient, PoolCommonGen,
-    PoolConsensusItem, PoolInput, PoolOutput, PoolOutputOutcome,
-};
-
-use stabilitypool::action;
-use stabilitypool::epoch;
-// pub use stabilitypool::epoch::*;
-// pub use stabilitypool::price::*;
+use common::action::{self, ActionProposedDb};
+use common::epoch;
 
 // The default global max feerate.
 // TODO: Have this actually in config.
 pub const DEFAULT_GLOBAL_MAX_FEERATE: u64 = 100_000;
-
-/// The default epoch length is 24hrs (represented in seconds).
-// pub const DEFAULT_EPOCH_LENGTH: u64 = 24 * 60 * 60;
-pub const DEFAULT_EPOCH_LENGTH: u64 = 40; // TODO: This is just for testing
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PoolConfigGenParams {
-    pub important_param: u64,
-    #[serde(default)]
-    pub start_epoch_at: Option<time::PrimitiveDateTime>,
-    /// this is in seconds
-    pub epoch_length: u64,
-    pub oracle_config: OracleConfig,
-    /// The ratio of seeker position to provider collateral
-    #[serde(default)]
-    pub collateral_ratio: CollateralRatio,
-}
-
-impl ModuleGenParams for PoolConfigGenParams {}
-
-impl Default for PoolConfigGenParams {
-    fn default() -> Self {
-        Self {
-            important_param: 3,
-            start_epoch_at: None,
-            epoch_length: DEFAULT_EPOCH_LENGTH,
-            oracle_config: OracleConfig::default(),
-            collateral_ratio: Default::default(),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct PoolConfigGenerator;
@@ -105,7 +69,7 @@ impl ServerModuleGen for PoolConfigGenerator {
     fn trusted_dealer_gen(
         &self,
         peers: &[PeerId],
-        params: &ConfigGenParams,
+        params: &ConfigGenModuleParams,
     ) -> BTreeMap<PeerId, ServerModuleConfig> {
         let params = params
             .to_typed::<PoolConfigGenParams>()
@@ -115,7 +79,7 @@ impl ServerModuleGen for PoolConfigGenerator {
             .iter()
             .map(|&peer| {
                 let config = PoolConfig {
-                    private: PoolConfigPrivate { peer_id: peer },
+                    private: PoolConfigPrivate {},
                     consensus: PoolConfigConsensus {
                         epoch: EpochConfig {
                             start_epoch_at: params
@@ -144,16 +108,14 @@ impl ServerModuleGen for PoolConfigGenerator {
     async fn distributed_gen(
         &self,
         peers: &PeerHandle,
-        params: &ConfigGenParams,
+        params: &ConfigGenModuleParams,
     ) -> DkgResult<ServerModuleConfig> {
         let params = params
             .to_typed::<PoolConfigGenParams>()
             .expect("Invalid mint params");
 
         let server = PoolConfig {
-            private: PoolConfigPrivate {
-                peer_id: peers.our_id,
-            },
+            private: PoolConfigPrivate {},
             consensus: PoolConfigConsensus {
                 epoch: EpochConfig {
                     start_epoch_at: params
@@ -173,20 +135,29 @@ impl ServerModuleGen for PoolConfigGenerator {
         Ok(server.to_erased())
     }
 
-    fn to_config_response(
+    fn validate_config(
         &self,
-        config: serde_json::Value,
-    ) -> anyhow::Result<fedimint_core::config::ModuleConfigResponse> {
-        let config = serde_json::from_value::<PoolConfigConsensus>(config)?;
-
-        Ok(ModuleConfigResponse {
-            client: config.to_client_config(),
-            consensus_hash: config.consensus_hash()?,
-        })
+        _identity: &PeerId,
+        config: ServerModuleConfig,
+    ) -> anyhow::Result<()> {
+        let _ = config.to_typed::<PoolConfig>()?;
+        Ok(())
     }
 
-    fn validate_config(&self, identity: &PeerId, config: ServerModuleConfig) -> anyhow::Result<()> {
-        config.to_typed::<PoolConfig>()?.validate_config(identity)
+    fn get_client_config(
+        &self,
+        config: &ServerModuleConsensusConfig,
+    ) -> anyhow::Result<ClientModuleConfig> {
+        let config = PoolConfigConsensus::from_erased(config)?;
+        Ok(ClientModuleConfig::from_typed(
+            config.kind(),
+            config.version(),
+            &PoolClientConfig {
+                oracle: config.oracle,
+                collateral_ratio: config.epoch.collateral_ratio,
+            },
+        )
+        .expect("serialization can't fail 🤞"))
     }
 
     async fn dump_database(
@@ -227,12 +198,16 @@ impl ServerModule for StabilityPool {
     type Common = PoolModuleTypes;
     type VerificationCache = PoolVerificationCache;
 
-    fn versions(&self) -> (ModuleConsensusVersion, &[ApiVersion]) {
-        (
-            ModuleConsensusVersion(1),
-            &[ApiVersion { major: 1, minor: 1 }],
-        )
+    fn supported_api_versions(&self) -> SupportedModuleApiVersions {
+        SupportedModuleApiVersions::from_raw(0, 0, &[(0, 0)])
     }
+
+    // fn versions(&self) -> (ModuleConsensusVersion, &[ApiVersion]) {
+    //     (
+    //         ModuleConsensusVersion(1),
+    //         &[ApiVersion { major: 1, minor: 1 }],
+    //     )
+    // }
 
     async fn await_consensus_proposal(
         &self,
@@ -273,9 +248,10 @@ impl ServerModule for StabilityPool {
 
     async fn begin_consensus_epoch<'a, 'b>(
         &'a self,
-        dbtx: &mut ModuleDatabaseTransaction<'b, ModuleInstanceId>,
+        dbtx: &mut ModuleDatabaseTransaction<'b>,
         consensus_items: Vec<(PeerId, PoolConsensusItem)>,
-    ) {
+        _consensus_peers: &BTreeSet<PeerId>,
+    ) -> Vec<PeerId> {
         for (peer_id, item) in consensus_items {
             let outcome = match item {
                 PoolConsensusItem::ActionProposed(action_proposed) => {
@@ -299,6 +275,8 @@ impl ServerModule for StabilityPool {
                 }
             }
         }
+
+        vec![]
     }
 
     fn build_verification_cache<'a>(
@@ -425,7 +403,7 @@ impl ServerModule for StabilityPool {
 
     async fn end_consensus_epoch<'a, 'b>(
         &'a self,
-        _consensus_peers: &HashSet<PeerId>,
+        _consensus_peers: &BTreeSet<PeerId>,
         _dbtx: &mut ModuleDatabaseTransaction<'b, ModuleInstanceId>,
     ) -> Vec<PeerId> {
         vec![]

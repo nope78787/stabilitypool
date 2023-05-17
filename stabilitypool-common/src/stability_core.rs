@@ -65,7 +65,9 @@ pub struct ProviderBid {
 }
 
 /// Ratio of seeker position to provider collateral.
-#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Encodable)]
+#[derive(
+    Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Encodable, Decodable,
+)]
 pub struct CollateralRatio {
     pub seeker: u8,
     pub provider: u8,
