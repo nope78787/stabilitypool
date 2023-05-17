@@ -1,21 +1,21 @@
 use std::fmt;
 
 use async_trait::async_trait;
-use common::PoolModuleTypes;
-use config::PoolConfigClient;
+use fedimint_client::sm::DynState;
+use fedimint_client::DynGlobalClientContext;
+use fedimint_core::core::IntoDynInstance;
 use fedimint_core::core::{Decoder, ModuleInstanceId, ModuleKind};
 use fedimint_core::encoding::{Decodable, Encodable};
-use fedimint_core::module::{CommonModuleGen, ModuleCommon};
+use fedimint_core::module::{CommonModuleGen, ModuleCommon, ModuleConsensusVersion};
 use serde::{Deserialize, Serialize};
 
 pub use crate::account::*;
-pub use crate::action::*;
-pub use crate::epoch::*;
+pub use crate::action::{Action, ActionProposed, ActionStaged, ProviderBid, SeekerAction};
+pub use crate::epoch::{EpochEnd, EpochOutcome, EpochState};
 pub use crate::price::*;
 
 pub mod account;
 pub mod action;
-pub mod common;
 pub mod config;
 pub mod db;
 pub mod epoch;
@@ -29,16 +29,11 @@ pub struct PoolCommonGen;
 
 #[async_trait]
 impl CommonModuleGen for PoolCommonGen {
+    const CONSENSUS_VERSION: ModuleConsensusVersion = ModuleConsensusVersion(0);
     const KIND: ModuleKind = KIND;
 
     fn decoder() -> Decoder {
         PoolModuleTypes::decoder()
-    }
-
-    fn hash_client_module(
-        config: serde_json::Value,
-    ) -> anyhow::Result<bitcoin::hashes::sha256::Hash> {
-        serde_json::from_value::<PoolConfigClient>(config)?.consensus_hash()
     }
 }
 
@@ -95,4 +90,60 @@ pub enum ConsensusItemOutcome {
     Applied,
     Ignored(String),
     Banned(String),
+}
+
+use fedimint_core::plugin_types_trait_impl_common;
+
+// #[derive(Debug, Default, Clone)]
+// pub struct PoolDecoder;
+
+pub struct PoolModuleTypes;
+
+plugin_types_trait_impl_common!(
+    PoolModuleTypes,
+    PoolInput,
+    PoolOutput,
+    PoolOutputOutcome,
+    PoolConsensusItem
+);
+
+/// Tracks a transaction
+#[derive(Debug, Clone, Eq, PartialEq, Decodable, Encodable)]
+pub enum PoolStateMachine {
+    // Input(Amount, TransactionId, OperationId),
+    // Output(Amount, TransactionId, OperationId),
+    // Done,
+}
+
+/// Data needed by the state machine
+#[derive(Debug, Clone)]
+pub struct PoolClientContext;
+
+// TODO: Boiler-plate
+impl fedimint_client::sm::Context for PoolClientContext {}
+
+impl fedimint_client::sm::State for PoolStateMachine {
+    type ModuleContext = PoolClientContext;
+    type GlobalContext = DynGlobalClientContext;
+
+    fn transitions(
+        &self,
+        _context: &Self::ModuleContext,
+        _global_context: &Self::GlobalContext,
+    ) -> Vec<fedimint_client::sm::StateTransition<Self>> {
+        vec![]
+    }
+
+    fn operation_id(&self) -> fedimint_client::sm::OperationId {
+        fedimint_client::sm::OperationId([0; 32])
+    }
+}
+
+// TODO: Boiler-plate
+impl IntoDynInstance for PoolStateMachine {
+    type DynType = DynState<DynGlobalClientContext>;
+
+    fn into_dyn(self, instance_id: ModuleInstanceId) -> Self::DynType {
+        DynState::from_typed(instance_id, self)
+    }
 }

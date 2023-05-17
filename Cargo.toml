@@ -7,11 +7,13 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-fedimint-core = { git = "https://github.com/dpc/fedimint", branch = "config-gen-params" }
-fedimint-client = { git = "https://github.com/dpc/fedimint", branch = "config-gen-params" }
+# fedimint-core = { git = "https://github.com/dpc/fedimint", branch = "master" }
+# fedimint-client = { git = "https://github.com/dpc/fedimint", branch = "master" }
 
-# fedimint-core = { path = "../fedimint/fedimint-core" }
-# fedimint-client = { path = "../fedimint/fedimint-client" }
+fedimint-core = { path = "../fedimint/fedimint-core" }
+fedimint-client = { path = "../fedimint/fedimint-client" }
+fedimint-cli = { path = "../fedimint/fedimint-cli" }
+fedimint-mint-client = { path = "../fedimint/modules/fedimint-mint-client" }
 
 [patch.crates-io]
 secp256k1-zkp = { git = "https://github.com/dpc/rust-secp256k1-zkp/", branch = "sanket-pr" }
